@@ -17,3 +17,18 @@ class Course(models.Model):
 
 	def __str__(self):
 		return '['+self.code+']'+self.title
+
+	def getJSON(self):
+		data = {
+			'code' : self.code,
+			'title' : self.title,
+			'instructor' : self.instructor,
+			'instr_mail' : self.instr_mail,
+			'prereq' : self.prereq,
+			'credits' : self.credits,
+			'credits_distrb' : self.credits_distrb,
+			'dept' : self.dept,
+			'schedule' : self.schedule,
+			'instr_notes' : self.instr_notes
+		}
+		return data

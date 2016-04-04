@@ -2,6 +2,8 @@ import json
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.http import JsonResponse
+from django.db import connection
+from django.core import serializers
 
 from api.models import Course
 
@@ -14,20 +16,31 @@ def index(request):
 
 def getCourseData(request,codes='all'):
 	response = {}
-	response['success'] = True
-	response['message'] = "Successfully fetched data."
+	response['success'] = False
+
+	if codes=='all':
+		courses = Course.objects.all()
+	else :
+		codes = codes.split(',')
+		courses = Course.objects.filter(code__in=codes)
+
+	data = []
+	for row in courses:
+		data.append(row.getJSON())
+
 	response['data'] = {
-		'codes' : codes
+		'courses' : data,
+		'total_courses' : len(data)
 	}
 
 	return JsonResponse(response)
 
 def updateCourseData(request):
-	START = 454
+	START = 0
 	LIMIT = 1000
 	count = 0
 
-	url = 'http://oars2.cc.iitk.ac.in:4040/Common/CourseListing.asp'
+	url = 'http://oars.cc.iitk.ac.in:4040/Common/CourseListing.asp'
 	page = urllib2.urlopen(url)
 	soup = BeautifulSoup(page.read())
 
@@ -40,7 +53,7 @@ def updateCourseData(request):
 		if count > LIMIT:
 			break
 		course = code.text.strip()
-		course_url = 'http://oars2.cc.iitk.ac.in:4040/Utils/CourseInfoPopup2.asp?Course='+course
+		course_url = 'http://oars.cc.iitk.ac.in:4040/Utils/CourseInfoPopup2.asp?Course='+course
 		course_page = urllib2.urlopen(course_url)
 		course_soup = BeautifulSoup(course_page.read())
 
