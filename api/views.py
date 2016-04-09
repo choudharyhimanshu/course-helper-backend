@@ -6,6 +6,7 @@ from django.db import connection
 from django.core import serializers
 
 from api.models import Course
+from api.models import DegreeTemplate
 
 from bs4 import BeautifulSoup
 import urllib2
@@ -16,7 +17,7 @@ def index(request):
 
 def getCourseData(request,codes='all'):
 	response = {}
-	response['success'] = False
+	response['success'] = True
 
 	if codes=='all':
 		courses = Course.objects.all()
@@ -76,3 +77,24 @@ def updateCourseData(request):
 
 	print 'count = ', count
 	print 'Last inserted course : %s' % course
+
+def getDegreeTemplate(request,dept='all'):
+	response = {}
+	response['success'] = True
+
+	if dept=='all':
+		templates = DegreeTemplate.objects.all()
+	else :
+		dept = dept.split(',')
+		templates = DegreeTemplate.objects.filter(dept__in=dept)
+
+	data = []
+	for row in templates:
+		data.append(row.getJSON())
+
+	response['data'] = {
+		'template' : data,
+		'total_templates' : len(data)
+	}
+
+	return JsonResponse(response)

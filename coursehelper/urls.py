@@ -20,3 +20,6 @@ urlpatterns = [
 	url(r'^api/', include('api.urls')),
     url(r'^admin/', admin.site.urls),
 ]
+
+admin.site.site_title = "Course Helper"
+admin.site.site_header = "Course Helper Admin Panel"
