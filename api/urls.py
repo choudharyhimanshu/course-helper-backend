@@ -9,4 +9,6 @@ urlpatterns = [
     url(r'^update/courses/$', views.updateCourseData, name='update_courses'),
     url(r'^degree-template/$', views.getDegreeTemplate, name='template'),
     url(r'^degree-template/(?P<dept>[\w|,]+)/$', views.getDegreeTemplate, name='template'),
+    url(r'^update-user-courses/$', views.updateUserCourses, name='user_courses'),
+    url(r'^update-graph/$', views.updateGraph, name='graph'),
 ]

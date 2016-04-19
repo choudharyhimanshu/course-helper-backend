@@ -66,3 +66,32 @@ class DegreeTemplate(models.Model):
 			'total' : self.total
 		}
 		return data
+
+class UserDepartment(models.Model):
+	roll = models.CharField(max_length=12,unique=True)
+	dept = models.CharField(max_length=30,default=None)
+
+	def __str__(self):
+		return '['+self.roll+'] '+self.dept
+
+	def getJSON(self):
+		data = {
+			'roll' : self.roll,
+			'dept' : self.dept
+		}
+		return data
+
+# Model for storing which users have done what courses
+class UserCourses(models.Model):
+	roll = models.CharField(max_length=12,unique=True)
+	code = models.CharField(max_length=7,unique=True)
+
+	def __str__(self):
+		return '['+self.roll+'] '+self.code
+
+	def getJSON(self):
+		data = {
+			'roll' : self.roll,
+			'code' : self.code,
+		}
+		return data
