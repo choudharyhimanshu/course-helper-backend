@@ -10,5 +10,7 @@ urlpatterns = [
     url(r'^degree-template/$', views.getDegreeTemplate, name='template'),
     url(r'^degree-template/(?P<dept>[\w|,]+)/$', views.getDegreeTemplate, name='template'),
     url(r'^update-user-courses/$', views.updateUserCourses, name='user_courses'),
-    url(r'^update-graph/$', views.updateGraph, name='graph'),
+    # url(r'^update-graph/$', views.updateGraph, name='upGraph'),
+    url(r'^recreate-graph/$', views.recreateGraph, name='graph'),
+    url(r'^graph/(?P<roll_no>[\w|,]+)/$', views.getGraph, name='getGraph'),
 ]
