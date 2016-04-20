@@ -3,6 +3,7 @@ import urllib2
 import os
 import pickle
 import heapq as hq
+import operator
 
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse, HttpResponseRedirect
@@ -218,22 +219,27 @@ def dijkstra( adjMatrix, dept, courses):
 
 	hq.heapify(unvisited)
 
-	# response = ""
-	response = []
+	# The code for Dijkstra is this
 	while unvisited:
 		curr = hq.heappop(unvisited)
 		for index, node in enumerate(unvisited):
 			if node[1] in adjMatrix[curr[1]].keys():
-				# response += "Updated distance of " + node[1] + " from " + str(node[0])
 				newDist = curr[0] + adjMatrix[curr[1]][node[1]]
 				node = (newDist, node[1]) if (newDist < node[0]) else node
 				distance[node[1]] = newDist if (newDist < node[0]) else node[0]
 				unvisited[index] = node
-				# response += " to " + str(node[0]) + "<br>"
 		hq.heapify(unvisited)
-		response.append(list(unvisited))
 
-	response = distance
+	# Beautifying the output
+	response = sorted(distance.items(), key=operator.itemgetter(1))
+	i = 0
+	for x in xrange(len(response)):
+		if (response[i][0] in courses) or (response[i][0] == dept):
+			del response[i]
+			i -= 1
+		else:
+			response[i] = {'course':response[i][0], 'priority':response[i][1]}
+		i += 1
 	return response
 
 def getGraph(request, roll_no):
@@ -247,18 +253,23 @@ def getGraph(request, roll_no):
 		response = "NO GRAPH VALUES for " + roll_no + "\n"
 		response += "If you are seeing this, something went wrong!!"
 		return HttpResponse(response)
+	
 	dept = tracking['dept']
 	courses = tracking['courses']
 
 	if os.path.exists(graph_pickle):
+		response = {}
+		response['success'] = True
 		with open(graph_pickle, "rb") as graph_file:
 			adjMatrix, dept_adj = pickle.load(graph_file)
 		adjMatrix[dept] = dept_adj[dept]
 
 		# NOW APPLY DIJKSTRA ON THIS
 		ranking = dijkstra( adjMatrix, dept, courses )
-		response = json.dumps(ranking)
+		response['data'] = ranking
+
+		return JsonResponse(response)
 	
 	else:
 		response = "NO GRAPH VALUES"
-	return HttpResponse(response)
+		return HttpResponse(response)
