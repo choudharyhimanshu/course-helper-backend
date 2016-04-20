@@ -2,7 +2,7 @@ import json
 import urllib2
 import os
 import pickle
-import numpy as np
+import heapq as hq
 
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse, HttpResponseRedirect
@@ -139,29 +139,126 @@ def updateUserCourses(request):
 		response = "Hello "+roll+"!! You seem to be from the "+dept+" department!\nWe have saved the courses you have done!"
 		return HttpResponse(response)
 
-def updateGraph(request):
+def recreateGraph(request):
 	response = ""
 	tracking_pickle = "api/data/tracking.pickle"
 	graph_pickle = "api/data/graph.pickle"
 
 	with open(tracking_pickle, "rb") as tracking_file:
 		tracking = pickle.load(tracking_file)
-	if os.path.exists(tracking_pickle):
-		with open(tracking_pickle, "rb") as tracking_file:
-			graph = pickle.load(tracking_file)
+	adjMatrix = dict()
+	dept_adj = dict()
+
+	for roll_no in tracking.keys():
+		dept_adj[tracking[roll_no]['dept']] = dept_adj.get( tracking[roll_no]['dept'], dict() )
+		for course in tracking[roll_no]['courses']:
+			dept_adj[tracking[roll_no]['dept']][course] = 1 + dept_adj[tracking[roll_no]['dept']].get(course, 0)
+			adjMatrix[course] = adjMatrix.get(course, dict())
+			for course2 in tracking[roll_no]['courses']:
+				adjMatrix[course][course2] = adjMatrix[course].get(course2, 0) + 1
+
+	with open(graph_pickle, "wb") as graph_file:
+		pickle.dump((adjMatrix, dept_adj), graph_file)
+
+	response += json.dumps(adjMatrix)
+	return HttpResponse(response)
+
+# def updateGraph(request, roll_no):
+# 	response = ""
+# 	tracking_pickle = "api/data/tracking.pickle"
+# 	graph_pickle = "api/data/graph.pickle"
+
+# 	with open(tracking_pickle, "rb") as tracking_file:
+# 		tracking = pickle.load(tracking_file)
+# 	if os.path.exists(graph_pickle):
+# 		with open(graph_pickle, "rb") as graph_file:
+# 			adjMatrix, dept_adj = pickle.load(graph_file)
+# 	else:
+# 		adjMatrix = dict()
+# 		dept_adj = dict()
+
+# 	dept_adj[tracking[roll_no]['dept']] = dept_adj.get( tracking[roll_no]['dept'], dict() )
+# 	for course in tracking[roll_no]['courses']:
+# 		dept_adj[tracking[roll_no]['dept']][course] = 1 + dept_adj[tracking[roll_no]['dept']].get(course, 0)
+# 		adjMatrix[course] = adjMatrix.get(course, dict())
+# 		for course2 in tracking[roll_no]['courses']:
+# 			adjMatrix[course][course2] = adjMatrix[course].get(course2, 0) + 1
+
+# 	with open(graph_pickle, "wb") as graph_file:
+# 		pickle.dump((adjMatrix, dept_adj), graph_file)
+
+# 	response += json.dumps(adjMatrix)
+# 	return HttpResponse(response)
+
+
+def dijkstra( adjMatrix, dept, courses):
+	distance = dict()
+	unvisited = []
+	max_score = 0
+
+	for node in adjMatrix.keys():
+		max_node = max(adjMatrix[node].values())
+		if max_score < max_node:
+			max_score = max_node
+		if node == dept:
+			distance[node] = 0
+		elif node in courses:
+			distance[node] = 0
+			unvisited.append((distance[node], node))
+		else:
+			distance[node] = float('inf')
+			unvisited.append((distance[node], node))
+
+	for node in adjMatrix.keys():
+		for neighbor in adjMatrix[node].keys():
+			adjMatrix[node][neighbor] = max_score - adjMatrix[node][neighbor] + 1
+
+		if node in courses:
+			adjMatrix[dept][node] = 0
+
+	hq.heapify(unvisited)
+
+	# response = ""
+	response = []
+	while unvisited:
+		curr = hq.heappop(unvisited)
+		for index, node in enumerate(unvisited):
+			if node[1] in adjMatrix[curr[1]].keys():
+				# response += "Updated distance of " + node[1] + " from " + str(node[0])
+				newDist = curr[0] + adjMatrix[curr[1]][node[1]]
+				node = (newDist, node[1]) if (newDist < node[0]) else node
+				distance[node[1]] = newDist if (newDist < node[0]) else node[0]
+				unvisited[index] = node
+				# response += " to " + str(node[0]) + "<br>"
+		hq.heapify(unvisited)
+		response.append(list(unvisited))
+
+	response = distance
+	return response
+
+def getGraph(request, roll_no):
+	tracking_pickle = "api/data/tracking.pickle"
+	graph_pickle = "api/data/graph.pickle"
+
+	with open(tracking_pickle, "rb") as tracking_file:
+		tracking = pickle.load(tracking_file)
+	tracking = tracking.get(roll_no, None)
+	if tracking is None:
+		response = "NO GRAPH VALUES for " + roll_no + "\n"
+		response += "If you are seeing this, something went wrong!!"
+		return HttpResponse(response)
+	dept = tracking['dept']
+	courses = tracking['courses']
+
+	if os.path.exists(graph_pickle):
+		with open(graph_pickle, "rb") as graph_file:
+			adjMatrix, dept_adj = pickle.load(graph_file)
+		adjMatrix[dept] = dept_adj[dept]
+
+		# NOW APPLY DIJKSTRA ON THIS
+		ranking = dijkstra( adjMatrix, dept, courses )
+		response = json.dumps(ranking)
+	
 	else:
-		graph = np.asarray([])
-
-	courses = Course.objects.all()
-	data = []
-	for row in courses:
-		data.append(row.getJSON())
-	query = Course.objects.raw('SELECT * FROM api_course group by dept')
-	deptData = []
-	for row in query:
-		deptData.append(row)
-
-	numCourses = len(data)
-
-	response += str(len(data)) + "</br>" + deptData[0]['dept'] + "</br>" + deptData[1]['dept']
+		response = "NO GRAPH VALUES"
 	return HttpResponse(response)
