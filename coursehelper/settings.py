@@ -79,8 +79,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'coursehelper',
-        'USER': 'avikalpg',
-        'PASSWORD': 'avikalpg',
+        'USER': 'root',
+        'PASSWORD': '12298',
         'HOST': 'localhost',
         'PORT': '80',
     }
